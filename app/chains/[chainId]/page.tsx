@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { OuterJoinTable } from "@/components/chains/outer-join-table";
 import { FilterBar } from "@/components/chains/filter-bar";
 import { BulkActionsMenu } from "@/components/chains/bulk-actions-menu";
-import { EPWList } from "@/components/chains/epw-list";
 import { ChainHeader } from "@/components/chains/chain-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -30,12 +29,9 @@ import { getChainName } from "@/lib/mock-chains";
 
 export default function ChainPage() {
   const params = useParams();
-  const searchParams = useSearchParams();
-  const router = useRouter();
 
   const chainId = params.chainId as string;
   const chainName = getChainName(chainId);
-  const country = searchParams.get("country") || "US";
 
   // Generate chain-specific mock data
   const mockData = generateMockDataForChain(chainId);
@@ -110,6 +106,9 @@ export default function ChainPage() {
         case "zip":
           fieldValue = (row.input?.zip || row.venue?.zip || "").toLowerCase();
           break;
+        case "country":
+          fieldValue = (row.input?.countryCode || row.venue?.cc || "").toLowerCase();
+          break;
         case "status":
           fieldValue = row.matchStatus.toLowerCase();
           break;
@@ -148,6 +147,10 @@ export default function ChainPage() {
       case "zip":
         aVal = a.input?.zip || a.venue?.zip || "";
         bVal = b.input?.zip || b.venue?.zip || "";
+        break;
+      case "country":
+        aVal = a.input?.countryCode || a.venue?.cc || "";
+        bVal = b.input?.countryCode || b.venue?.cc || "";
         break;
       case "status":
         aVal = a.matchStatus || "";
@@ -244,23 +247,12 @@ export default function ChainPage() {
     setIsLoading(false);
   };
 
-  const handleCountryChange = (newCountry: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("country", newCountry);
-    router.push(`/chains/${chainId}?${params.toString()}`);
-    
-    // Simulate data refresh
-    toast.info(`Switched to ${newCountry}`);
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-8 space-y-6">
         <ChainHeader
           chainId={chainId}
           chainName={chainName}
-          country={country}
-          onCountryChange={handleCountryChange}
         />
 
         {/* Source Selection */}
@@ -312,7 +304,6 @@ export default function ChainPage() {
               />
 
               <div className="flex gap-2">
-                <EPWList epws={epws} onResolve={handleEPWResolve} />
                 <BulkActionsMenu
                   selectedCount={selectedRows.size}
                   onAction={handleBulkAction}

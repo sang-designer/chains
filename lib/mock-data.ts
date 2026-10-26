@@ -28,23 +28,23 @@ export function generateMockDataForChain(chainId: string): {
   const chainName = chain.n;
   const categories = chain.tcs || ["Restaurant"];
   
-  // Generate 15 sample locations for this chain
+  // Generate 15 sample locations for this chain with varied countries
   const cities = [
-    { city: "New York", state: "NY", zip: "10001", lat: 40.7589, lng: -73.9851 },
-    { city: "Los Angeles", state: "CA", zip: "90001", lat: 34.0522, lng: -118.2437 },
-    { city: "Chicago", state: "IL", zip: "60601", lat: 41.8781, lng: -87.6298 },
-    { city: "Houston", state: "TX", zip: "77001", lat: 29.7604, lng: -95.3698 },
-    { city: "Phoenix", state: "AZ", zip: "85001", lat: 33.4484, lng: -112.0740 },
-    { city: "Philadelphia", state: "PA", zip: "19101", lat: 39.9526, lng: -75.1652 },
-    { city: "San Antonio", state: "TX", zip: "78201", lat: 29.4241, lng: -98.4936 },
-    { city: "San Diego", state: "CA", zip: "92101", lat: 32.7157, lng: -117.1611 },
-    { city: "Dallas", state: "TX", zip: "75201", lat: 32.7767, lng: -96.7970 },
-    { city: "Austin", state: "TX", zip: "78701", lat: 30.2672, lng: -97.7431 },
-    { city: "Jacksonville", state: "FL", zip: "32099", lat: 30.3322, lng: -81.6557 },
-    { city: "Fort Worth", state: "TX", zip: "76101", lat: 32.7555, lng: -97.3308 },
-    { city: "San Francisco", state: "CA", zip: "94102", lat: 37.7749, lng: -122.4194 },
-    { city: "Seattle", state: "WA", zip: "98101", lat: 47.6062, lng: -122.3321 },
-    { city: "Denver", state: "CO", zip: "80202", lat: 39.7392, lng: -104.9903 },
+    { city: "New York", state: "NY", zip: "10001", lat: 40.7589, lng: -73.9851, country: "US" },
+    { city: "Los Angeles", state: "CA", zip: "90001", lat: 34.0522, lng: -118.2437, country: "US" },
+    { city: "Chicago", state: "IL", zip: "60601", lat: 41.8781, lng: -87.6298, country: "US" },
+    { city: "Toronto", state: "ON", zip: "M5H 2N2", lat: 43.6532, lng: -79.3832, country: "CA" },
+    { city: "Phoenix", state: "AZ", zip: "85001", lat: 33.4484, lng: -112.0740, country: "US" },
+    { city: "London", state: "England", zip: "SW1A 1AA", lat: 51.5074, lng: -0.1278, country: "GB" },
+    { city: "Vancouver", state: "BC", zip: "V6B 1A9", lat: 49.2827, lng: -123.1207, country: "CA" },
+    { city: "San Diego", state: "CA", zip: "92101", lat: 32.7157, lng: -117.1611, country: "US" },
+    { city: "Dallas", state: "TX", zip: "75201", lat: 32.7767, lng: -96.7970, country: "US" },
+    { city: "Sydney", state: "NSW", zip: "2000", lat: -33.8688, lng: 151.2093, country: "AU" },
+    { city: "Manchester", state: "England", zip: "M1 1AD", lat: 53.4808, lng: -2.2426, country: "GB" },
+    { city: "Montreal", state: "QC", zip: "H3A 1A3", lat: 45.5017, lng: -73.5673, country: "CA" },
+    { city: "San Francisco", state: "CA", zip: "94102", lat: 37.7749, lng: -122.4194, country: "US" },
+    { city: "Melbourne", state: "VIC", zip: "3000", lat: -37.8136, lng: 144.9631, country: "AU" },
+    { city: "Seattle", state: "WA", zip: "98101", lat: 47.6062, lng: -122.3321, country: "US" },
   ];
 
   const addresses = [
@@ -115,7 +115,7 @@ export function generateMockDataForChain(chainId: string): {
         sourceId: idx % 3 === 0 ? "google" : idx % 3 === 1 ? "yelp" : "facebook",
         foreignId: `${chainId}_${Math.random().toString(36).substring(2, 10)}`,
         chainId: chainId,
-        countryCode: "US",
+        countryCode: location.country,
         name: inputName,
         address: inputAddress,
         city: inputCity,
@@ -141,6 +141,7 @@ export function generateMockDataForChain(chainId: string): {
         longitude: location.lng,
         categories: categories,
         closed: idx === 14, // Last one is closed
+        cc: location.country,
       } : undefined,
       hasPendingEPW: matchStatus === "input_only", // Input only = pending EPW, Matched = no EPW
       zyteStatus: idx < 10 ? "found" : idx < 13 ? "not_found" : undefined,

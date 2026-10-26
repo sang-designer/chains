@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { ChevronRight, ChevronDown, ArrowUpDown, Filter as FilterIcon } from "lucide-react";
 import {
   Table,
@@ -206,6 +206,9 @@ export function OuterJoinTable({
 
   return (
     <div className="rounded-md border">
+      {/* #region agent log */}
+      {(fetch('http://127.0.0.1:7925/ingest/5759dde1-891d-4abd-b3bf-5d9a1109d614',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5cb598'},body:JSON.stringify({sessionId:'5cb598',location:'outer-join-table.tsx:207',message:'Component render',data:{dataLength:data.length,expandedCount:expandedRows.size},timestamp:Date.now(),runId:'initial',hypothesisId:'D'})}).catch(()=>{}), null)}
+      {/* #endregion */}
       <Table>
         <TableHeader>
           <TableRow>
@@ -223,6 +226,7 @@ export function OuterJoinTable({
             <FilterableHeader field="city">City</FilterableHeader>
             <FilterableHeader field="state">State</FilterableHeader>
             <FilterableHeader field="zip">Zip</FilterableHeader>
+            <FilterableHeader field="country">Country</FilterableHeader>
             <FilterableHeader field="status">Status</FilterableHeader>
             <TableHead>EPW</TableHead>
             <TableHead>Zyte</TableHead>
@@ -231,7 +235,7 @@ export function OuterJoinTable({
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                 No data found
               </TableCell>
             </TableRow>
@@ -239,11 +243,14 @@ export function OuterJoinTable({
             data.map((row) => {
               const isExpanded = expandedRows.has(row.id);
               const isSelected = selectedRows.has(row.id);
+              
+              // #region agent log
+              fetch('http://127.0.0.1:7925/ingest/5759dde1-891d-4abd-b3bf-5d9a1109d614',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5cb598'},body:JSON.stringify({sessionId:'5cb598',location:'outer-join-table.tsx:244',message:'Map iteration rendering',data:{rowId:row.id,isExpanded,hasFragmentKey:true},timestamp:Date.now(),runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
+              // #endregion
 
               return (
-                <>
+                <Fragment key={row.id}>
                   <TableRow
-                    key={row.id}
                     data-state={isSelected ? "selected" : undefined}
                   >
                     <TableCell>
@@ -283,6 +290,9 @@ export function OuterJoinTable({
                     <TableCell className="text-sm">
                       {row.input?.zip || row.venue?.zip || "—"}
                     </TableCell>
+                    <TableCell className="text-sm">
+                      {row.input?.countryCode || row.venue?.cc || "—"}
+                    </TableCell>
                     <TableCell>{getStatusBadge(row.matchStatus)}</TableCell>
                     <TableCell>
                       {row.hasPendingEPW && (
@@ -302,13 +312,17 @@ export function OuterJoinTable({
                     </TableCell>
                   </TableRow>
                   {isExpanded && (
+                    // #region agent log
+                    (fetch('http://127.0.0.1:7925/ingest/5759dde1-891d-4abd-b3bf-5d9a1109d614',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5cb598'},body:JSON.stringify({sessionId:'5cb598',location:'outer-join-table.tsx:310',message:'Expanded row rendering',data:{rowId:row.id,hasExpandedRowKey:false},timestamp:Date.now(),runId:'initial',hypothesisId:'B'})}).catch(()=>{}),
+                    // #endregion
                     <TableRow>
-                      <TableCell colSpan={10} className="bg-muted/50 p-4">
+                      <TableCell colSpan={11} className="bg-muted/50 p-4">
                         <AttributeComparePanel row={row} />
                       </TableCell>
                     </TableRow>
+                    )
                   )}
-                </>
+                </Fragment>
               );
             })
           )}
