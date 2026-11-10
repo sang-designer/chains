@@ -148,6 +148,39 @@ export function generateMockDataForChain(chainId: string): {
     };
   });
 
+  // Look-alike venues (same place, separate venue records) for the merge flow.
+  // The New York one comes from Google so it sits in the Google table next to
+  // "100 Main St" and can be selected and merged directly. The Vancouver one
+  // has no input, so it only shows up as a suggestion in the merge dialog.
+  const lookalikes = [
+    { of: 0, name: `${chainName} Co`, address: "100 Main Street", dLat: 0.0003, dLng: 0.0002, source: "google" },
+    { of: 6, name: undefined, address: "400 Park Ave", dLat: -0.0004, dLng: 0.0003, source: undefined },
+  ];
+  for (const [i, l] of lookalikes.entries()) {
+    const base = rows[l.of];
+    if (!base?.venue) continue;
+    const venue = {
+      ...base.venue,
+      _id: mockObjectId(),
+      name: l.name ?? base.venue.name,
+      address: l.address,
+      phone: undefined,
+      hours: undefined,
+      latitude: base.venue.latitude! + l.dLat,
+      longitude: base.venue.longitude! + l.dLng,
+    };
+    rows.push({
+      id: `${chainId}_dupe${i}_${(base.venue.city || "").toLowerCase()}`,
+      matchStatus: l.source ? "matched" : "venue_only",
+      input: l.source && base.input
+        ? { ...base.input, sourceId: l.source, foreignId: `${chainId}_dupe${i}`, name: venue.name, address: l.address }
+        : undefined,
+      venue,
+      hasPendingEPW: false,
+      zyteStatus: "found",
+    });
+  }
+
   // Generate EPWs for all input_only rows
   const epws: EPW[] = rows
     .filter(row => row.matchStatus === "input_only" && row.input)

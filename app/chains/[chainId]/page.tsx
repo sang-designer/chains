@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { OuterJoinTable } from "@/components/chains/outer-join-table";
 import { FilterBar } from "@/components/chains/filter-bar";
 import { BulkActionsMenu } from "@/components/chains/bulk-actions-menu";
 import { ChainHeader } from "@/components/chains/chain-header";
+import {
+  MergeDuplicatesDialog,
+  MergeSelection,
+} from "@/components/chains/merge-duplicates-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import {
@@ -43,10 +47,15 @@ export default function ChainPage() {
   const [sortField, setSortField] = useState<string>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
-  
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+
   // Use chain-specific mock data
   const [rows, setRows] = useState<OuterJoinRow[]>(mockData.rows);
   const [epws, setEpws] = useState<EPW[]>(mockData.epws);
+  const selectedMergeRows = useMemo(
+    () => rows.filter((row) => selectedRows.has(row.id)),
+    [rows, selectedRows]
+  );
 
   // Filter by selected source
   const sourceFilteredRows = selectedSource
@@ -208,6 +217,12 @@ export default function ChainPage() {
     action: BulkOperationType,
     options?: any
   ) => {
+    // Merge first asks which selected venues are actually duplicates.
+    if (action === "merge") {
+      setMergeDialogOpen(true);
+      return;
+    }
+
     setIsLoading(true);
     
     // Simulate API call
@@ -231,6 +246,34 @@ export default function ChainPage() {
         })
       );
     }
+  };
+
+  const handleMergeConfirm = async ({ primaryRowId, duplicateRowIds }: MergeSelection) => {
+    setMergeDialogOpen(false);
+    setIsLoading(true);
+
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const primary = rows.find((row) => row.id === primaryRowId);
+    const dupes = new Set(duplicateRowIds);
+
+    // Merged-away venues disappear; their inputs stay, now pointing at the kept venue.
+    setRows((prevRows) =>
+      prevRows.flatMap((row) => {
+        if (!dupes.has(row.id)) return [row];
+        if (!row.input || !primary?.venue) return [];
+        return [{ ...row, venue: primary.venue, venueId: primary.venueId }];
+      })
+    );
+
+    toast.success(
+      `Merged ${duplicateRowIds.length} venue${duplicateRowIds.length > 1 ? "s" : ""} into ${
+        primary?.venue?.name || "the kept venue"
+      }`
+    );
+    setSelectedRows(new Set());
+    setIsLoading(false);
   };
 
   const handleEPWResolve = async (epwId: string, action: "approve" | "reject") => {
@@ -352,6 +395,14 @@ export default function ChainPage() {
             </div>
           </Card>
         )}
+
+        <MergeDuplicatesDialog
+          open={mergeDialogOpen}
+          onOpenChange={setMergeDialogOpen}
+          selectedRows={selectedMergeRows}
+          candidatePool={rows}
+          onConfirm={handleMergeConfirm}
+        />
       </div>
     </div>
   );
