@@ -290,8 +290,14 @@ export function OuterJoinTable({
                     <TableCell className="text-sm">
                       {row.input?.zip || row.venue?.zip || "—"}
                     </TableCell>
-                    <TableCell className="text-sm">
-                      {row.input?.countryCode || row.venue?.cc || "—"}
+                    <TableCell>
+                      {(row.input?.countryCode || row.venue?.cc) ? (
+                        <Badge variant="secondary" className="font-mono">
+                          {row.input?.countryCode || row.venue?.cc}
+                        </Badge>
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                     <TableCell>{getStatusBadge(row.matchStatus)}</TableCell>
                     <TableCell>
