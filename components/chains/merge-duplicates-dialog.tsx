@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ArrowLeft, Merge } from "lucide-react";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -245,6 +246,7 @@ export function MergeDuplicatesDialog({
               </DialogDescription>
             </DialogHeader>
 
+            <DialogBody className="space-y-2">
             <div className="max-h-[50vh] overflow-y-auto space-y-2 py-2">
               {candidates.map(({ row, similarTo, reasons }) => (
                 <label
@@ -276,6 +278,7 @@ export function MergeDuplicatesDialog({
               Already selected: {selectedVenues.length} venue{selectedVenues.length === 1 ? "" : "s"}
             </div>
             <InputOnlyNote count={inputOnlyCount} />
+            </DialogBody>
 
             <DialogFooter>
               <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -298,6 +301,7 @@ export function MergeDuplicatesDialog({
               </DialogDescription>
             </DialogHeader>
 
+            <DialogBody className="space-y-2">
             <div role="radiogroup" className="max-h-[50vh] overflow-y-auto space-y-2 py-2">
               {mergeRows.map((row) => {
                 const selected = row.id === primaryId;
@@ -334,6 +338,7 @@ export function MergeDuplicatesDialog({
                 Select at least two venues to merge.
               </div>
             )}
+            </DialogBody>
 
             <DialogFooter>
               {candidates.length > 0 ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Fragment } from "react";
+import { useState, Fragment, type ReactNode } from "react";
 import { ChevronRight, ChevronDown, ArrowUpDown, Filter as FilterIcon } from "lucide-react";
 import {
   Table,
@@ -23,6 +23,26 @@ import { OuterJoinRow } from "@/types/chain";
 import { AttributeComparePanel } from "./attribute-compare-panel";
 import { cn } from "@/lib/utils";
 
+/**
+ * One field for both sides of the row. Same value (or only one side has it):
+ * shows it once. Different values: the source's on top, the venue's below in
+ * muted text, matching the Address column. Missing on both sides: an em dash.
+ */
+function CompareValue({ source, venue }: { source?: string; venue?: string }) {
+  const s = source?.trim();
+  const v = venue?.trim();
+  if (s && v && s.toLowerCase() !== v.toLowerCase()) {
+    return (
+      <div className="space-y-1" title={`Source: ${s}\nVenue: ${v}`}>
+        <div>{s}</div>
+        <div className="text-xs text-muted-foreground">{v}</div>
+      </div>
+    );
+  }
+  const value = s || v;
+  return value ? <>{value}</> : <span className="text-muted-foreground" aria-label="Not provided">—</span>;
+}
+
 interface OuterJoinTableProps {
   data: OuterJoinRow[];
   selectedRows: Set<string>;
@@ -33,6 +53,8 @@ interface OuterJoinTableProps {
   sortDirection?: "asc" | "desc";
   columnFilters?: Record<string, string>;
   onColumnFilter?: (field: string, value: string) => void;
+  /** Shown in the table body when `data` is empty (headers and filters stay usable). */
+  emptyState?: ReactNode;
 }
 
 export function OuterJoinTable({
@@ -45,6 +67,7 @@ export function OuterJoinTable({
   sortDirection = "asc",
   columnFilters = {},
   onColumnFilter,
+  emptyState,
 }: OuterJoinTableProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [openPopover, setOpenPopover] = useState<string | null>(null);
@@ -126,7 +149,15 @@ export function OuterJoinTable({
     return "—";
   };
 
-  const FilterableHeader = ({ field, children }: { field: string; children: React.ReactNode }) => {
+  const FilterableHeader = ({
+    field,
+    children,
+    filterable = true,
+  }: {
+    field: string;
+    children: React.ReactNode;
+    filterable?: boolean;
+  }) => {
     const hasFilter = columnFilters[field] && columnFilters[field].length > 0;
     const isCurrentSort = sortField === field;
     const fieldLabel = String(children || field);
@@ -147,6 +178,7 @@ export function OuterJoinTable({
                 isCurrentSort ? "text-primary" : "text-muted-foreground"
               )} />
             </Button>
+            {filterable && (
             <Popover open={openPopover === field} onOpenChange={(open) => setOpenPopover(open ? field : null)}>
               <PopoverTrigger asChild>
                 <Button
@@ -198,6 +230,7 @@ export function OuterJoinTable({
                 </div>
               </PopoverContent>
             </Popover>
+            )}
           </div>
         </div>
       </TableHead>
@@ -206,18 +239,16 @@ export function OuterJoinTable({
 
   return (
     <div className="rounded-md border">
-      {/* #region agent log */}
-      {(fetch('http://127.0.0.1:7925/ingest/5759dde1-891d-4abd-b3bf-5d9a1109d614',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5cb598'},body:JSON.stringify({sessionId:'5cb598',location:'outer-join-table.tsx:207',message:'Component render',data:{dataLength:data.length,expandedCount:expandedRows.size},timestamp:Date.now(),runId:'initial',hypothesisId:'D'})}).catch(()=>{}), null)}
-      {/* #endregion */}
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-12">
               <Checkbox
-                checked={allSelected}
-                onCheckedChange={(checked) => onSelectAll(!!checked)}
+                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                // From the partial (−) state, a click selects every row.
+                onCheckedChange={(checked) => onSelectAll(checked !== false)}
                 aria-label="Select all"
-                className={someSelected && !allSelected ? "opacity-50" : ""}
+                disabled={data.length === 0}
               />
             </TableHead>
             <TableHead className="w-12"></TableHead>
@@ -234,9 +265,9 @@ export function OuterJoinTable({
         </TableHeader>
         <TableBody>
           {data.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
-                No data found
+            <TableRow className="hover:bg-transparent">
+              <TableCell colSpan={11} className={emptyState ? "p-0" : "text-center text-muted-foreground py-8"}>
+                {emptyState ?? "No data found"}
               </TableCell>
             </TableRow>
           ) : (
@@ -244,9 +275,6 @@ export function OuterJoinTable({
               const isExpanded = expandedRows.has(row.id);
               const isSelected = selectedRows.has(row.id);
               
-              // #region agent log
-              fetch('http://127.0.0.1:7925/ingest/5759dde1-891d-4abd-b3bf-5d9a1109d614',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5cb598'},body:JSON.stringify({sessionId:'5cb598',location:'outer-join-table.tsx:244',message:'Map iteration rendering',data:{rowId:row.id,isExpanded,hasFragmentKey:true},timestamp:Date.now(),runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-              // #endregion
 
               return (
                 <Fragment key={row.id}>
@@ -282,13 +310,13 @@ export function OuterJoinTable({
                       {getDisplayAddress(row)}
                     </TableCell>
                     <TableCell className="text-sm">
-                      {row.input?.city || row.venue?.city || "—"}
+                      <CompareValue source={row.input?.city} venue={row.venue?.city} />
                     </TableCell>
                     <TableCell className="text-sm">
-                      {row.input?.state || row.venue?.state || "—"}
+                      <CompareValue source={row.input?.state} venue={row.venue?.state} />
                     </TableCell>
                     <TableCell className="text-sm">
-                      {row.input?.zip || row.venue?.zip || "—"}
+                      <CompareValue source={row.input?.zip} venue={row.venue?.zip} />
                     </TableCell>
                     <TableCell>
                       {(row.input?.countryCode || row.venue?.cc) ? (
@@ -318,15 +346,11 @@ export function OuterJoinTable({
                     </TableCell>
                   </TableRow>
                   {isExpanded && (
-                    // #region agent log
-                    (fetch('http://127.0.0.1:7925/ingest/5759dde1-891d-4abd-b3bf-5d9a1109d614',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5cb598'},body:JSON.stringify({sessionId:'5cb598',location:'outer-join-table.tsx:310',message:'Expanded row rendering',data:{rowId:row.id,hasExpandedRowKey:false},timestamp:Date.now(),runId:'initial',hypothesisId:'B'})}).catch(()=>{}),
-                    // #endregion
                     <TableRow>
                       <TableCell colSpan={11} className="bg-muted/50 p-4">
                         <AttributeComparePanel row={row} />
                       </TableCell>
                     </TableRow>
-                    )
                   )}
                 </Fragment>
               );

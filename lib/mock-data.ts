@@ -7,6 +7,15 @@ const mockObjectId = () => ({
   toHexString: () => Math.random().toString(36).substring(2, 15),
 } as any);
 
+// A slightly different postal code in the same format, for "zip mismatch" rows.
+// Bumps the last digit, so it works for US zips and CA/GB/AU postcodes alike
+// ("10001" → "10002", "M5H 2N2" → "M5H 2N3").
+function nearbyPostalCode(code: string): string {
+  const i = code.search(/\d(?=\D*$)/);
+  if (i === -1) return code;
+  return code.slice(0, i) + ((Number(code[i]) + 1) % 10) + code.slice(i + 1);
+}
+
 // Generate chain-specific mock data
 export function generateMockDataForChain(chainId: string): {
   chain: ChainMetadata;
@@ -88,7 +97,7 @@ export function generateMockDataForChain(chainId: string): {
         case 3: // Moderate match (~75%) - multiple small differences
           inputAddress = `${streetNum} ${addresses[(idx + 1) % addresses.length]}`;
           inputPhone = `+1-${location.zip.substring(0, 3)}-444-${String(idx).padStart(4, '0')}`;
-          inputZip = String(Number(location.zip) + 1);
+          inputZip = nearbyPostalCode(location.zip);
           break;
         case 4: // Partial match (~60%) - significant differences
           inputName = `${chainName} #${idx + 1}`;

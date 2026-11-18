@@ -153,19 +153,6 @@ export interface ComparisonField {
 /**
  * Filter options for the chains page
  */
-export interface ChainFilters {
-  matchStatus?: MatchStatus[];
-  source?: string;
-  hasAddress?: boolean;
-  hasPendingEPW?: boolean;
-  isDuplicate?: boolean;
-  search?: string;
-  dateRange?: {
-    start: Date;
-    end: Date;
-  };
-}
-
 /**
  * Bulk operation types
  */
