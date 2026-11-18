@@ -1,29 +1,7 @@
-import * as React from "react";
-import * as SeparatorPrimitive from "@radix-ui/react-separator";
+"use client";
 
-import { cn } from "@/lib/utils";
-
-const Separator = React.forwardRef<
-  React.ElementRef<typeof SeparatorPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>
->(
-  (
-    { className, orientation = "horizontal", decorative = true, ...props },
-    ref
-  ) => (
-    <SeparatorPrimitive.Root
-      ref={ref}
-      decorative={decorative}
-      orientation={orientation}
-      className={cn(
-        "shrink-0 bg-border",
-        orientation === "horizontal" ? "h-[1px] w-full" : "h-full w-[1px]",
-        className
-      )}
-      {...props}
-    />
-  )
-);
-Separator.displayName = SeparatorPrimitive.Root.displayName;
-
-export { Separator };
+// Tile v2 separator — re-exported from @tile/ui (foursquare/tile-v2@a1816a6).
+// "use client" is here because the @tile/ui bundle doesn't declare it.
+export {
+  Separator,
+} from "@tile/ui";

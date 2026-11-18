@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -58,7 +59,7 @@ export function EPWList({ epws, onResolve }: EPWListProps) {
           Pending EPWs ({epws.length})
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[80vh]">
         <DialogHeader>
           <DialogTitle>Edit Proposal Workflows</DialogTitle>
           <DialogDescription>
@@ -66,6 +67,7 @@ export function EPWList({ epws, onResolve }: EPWListProps) {
           </DialogDescription>
         </DialogHeader>
 
+        <DialogBody className="overflow-y-auto">
         {epws.length === 0 ? (
           <div className="py-8 text-center text-muted-foreground">
             No pending EPWs
@@ -174,6 +176,7 @@ export function EPWList({ epws, onResolve }: EPWListProps) {
             ))}
           </div>
         )}
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

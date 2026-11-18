@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ArrowUpDown } from "lucide-react";
+import useSWR from "swr";
+import { Search, ArrowUpDown, Store, SearchX, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -15,7 +16,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MOCK_CHAINS } from "@/lib/mock-chains";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  EmptyState,
+  ErrorState,
+  TableSkeletonRows,
+  TableStateRow,
+} from "@/components/states";
+import { fetchChains } from "@/lib/mock-api";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -26,9 +34,29 @@ export default function ChainsListPage() {
   const [sortField, setSortField] = useState<"name" | "venueCount">("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
+  const {
+    data: chains,
+    error,
+    isLoading,
+    isValidating,
+    mutate,
+  } = useSWR("chains", fetchChains, {
+    revalidateOnFocus: false,
+    shouldRetryOnError: false,
+  });
+  const loadFailed = !!error && !chains;
+  const noChains = !!chains && chains.length === 0;
+  const query = searchQuery.trim();
+  const totalVenues = (chains ?? []).reduce((sum, chain) => sum + chain.venueCount, 0);
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    setCurrentPage(1);
+  };
+
   // Filter chains based on search
-  const filteredChains = MOCK_CHAINS.filter((chain) => {
-    const searchLower = searchQuery.toLowerCase();
+  const filteredChains = (chains ?? []).filter((chain) => {
+    const searchLower = query.toLowerCase();
     return (
       chain.n?.toLowerCase().includes(searchLower) ||
       chain.d?.toLowerCase().includes(searchLower) ||
@@ -90,13 +118,21 @@ export default function ChainsListPage() {
         <div className="grid grid-cols-2 gap-4">
           <Card>
             <CardContent className="pt-6">
-              <div className="text-2xl font-bold">4,984</div>
+              {isLoading ? (
+                <Skeleton className="h-8 w-20" />
+              ) : (
+                <div className="text-2xl font-bold">{loadFailed ? "—" : formatNumber(chains?.length ?? 0)}</div>
+              )}
               <p className="text-xs text-muted-foreground">Total Chains</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
-              <div className="text-2xl font-bold">456,987</div>
+              {isLoading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <div className="text-2xl font-bold">{loadFailed ? "—" : formatNumber(totalVenues)}</div>
+              )}
               <p className="text-xs text-muted-foreground">Total Venues</p>
             </CardContent>
           </Card>
@@ -117,13 +153,28 @@ export default function ChainsListPage() {
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search chains..."
+                    aria-label="Search chains"
                     value={searchQuery}
+                    disabled={loadFailed || noChains}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="pl-8"
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape" && searchQuery) clearSearch();
+                    }}
+                    className="pl-8 pr-8"
                   />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={clearSearch}
+                      aria-label="Clear search"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -138,6 +189,7 @@ export default function ChainsListPage() {
                         variant="ghost"
                         size="sm"
                         className="-ml-3 h-8"
+                        disabled={!chains?.length}
                         onClick={() => handleSort("name")}
                       >
                         Chain Name
@@ -151,6 +203,7 @@ export default function ChainsListPage() {
                         variant="ghost"
                         size="sm"
                         className="h-8"
+                        disabled={!chains?.length}
                         onClick={() => handleSort("venueCount")}
                       >
                         Venues
@@ -162,18 +215,56 @@ export default function ChainsListPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedChains.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        No chains found matching &quot;{searchQuery}&quot;
-                      </TableCell>
-                    </TableRow>
+                  {isLoading ? (
+                    <TableSkeletonRows
+                      rows={8}
+                      columns={["w-40", "w-28", "w-20", "ml-auto w-14", "ml-auto w-14", "w-20"]}
+                    />
+                  ) : loadFailed ? (
+                    <TableStateRow colSpan={6}>
+                      <ErrorState
+                        title="Couldn't load chains"
+                        error={error}
+                        onRetry={() => mutate()}
+                        retrying={isValidating}
+                      />
+                    </TableStateRow>
+                  ) : noChains ? (
+                    <TableStateRow colSpan={6}>
+                      <EmptyState
+                        icon={Store}
+                        title="No chains yet"
+                        description="Chains will show up here once they exist in the venue database."
+                      />
+                    </TableStateRow>
+                  ) : paginatedChains.length === 0 ? (
+                    <TableStateRow colSpan={6}>
+                      <EmptyState
+                        icon={SearchX}
+                        title="No matching chains"
+                        description={
+                          <>
+                            Nothing matches &ldquo;{query}&rdquo; in chain names, descriptions or
+                            categories. Check the spelling or try a shorter search.
+                          </>
+                        }
+                      >
+                        <Button variant="outline" onClick={clearSearch}>
+                          Clear search
+                        </Button>
+                      </EmptyState>
+                    </TableStateRow>
                   ) : (
                     paginatedChains.map((chain) => (
                       <TableRow
                         key={chain.id}
-                        className="cursor-pointer hover:bg-muted/50"
+                        className="cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
+                        tabIndex={0}
+                        aria-label={`Open ${chain.n}`}
                         onClick={() => router.push(`/chains/${chain.id}`)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") router.push(`/chains/${chain.id}`);
+                        }}
                       >
                         <TableCell className="font-medium">
                           <div>
@@ -222,13 +313,17 @@ export default function ChainsListPage() {
               </Table>
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
+            {/* Result count + pagination */}
+            {sortedChains.length > 0 && (
               <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-muted-foreground">
-                  Showing {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, sortedChains.length)} of{" "}
-                  {sortedChains.length} chains
+                <div className="text-sm text-muted-foreground" aria-live="polite">
+                  {totalPages > 1
+                    ? `Showing ${startIndex + 1}-${Math.min(startIndex + ITEMS_PER_PAGE, sortedChains.length)} of `
+                    : "Showing "}
+                  {sortedChains.length} {sortedChains.length === 1 ? "chain" : "chains"}
+                  {query && ` matching “${query}”`}
                 </div>
+                {totalPages > 1 && (
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -260,6 +355,7 @@ export default function ChainsListPage() {
                     Next
                   </Button>
                 </div>
+                )}
               </div>
             )}
           </CardContent>

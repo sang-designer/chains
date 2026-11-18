@@ -40,6 +40,75 @@ Visit `http://localhost:3000` and navigate through:
 - **Chains List** (`/chains`) - Browse all chains
 - **Chain Detail** (`/chains/[chainId]`) - Manage specific chain
 
+## Design System (Tile v2)
+
+UI primitives come from Foursquare's Tile v2 design system, the `@tile/ui`
+package in [foursquare/tile-v2](https://github.com/foursquare/tile-v2) (Storybook
+on Chromatic). It isn't published yet, so the app installs it from a local
+clone next to this repo: `"@tile/ui": "file:../tile-v2"`.
+
+### One-time setup
+
+1. Clone tile-v2 next to this repo (so it sits at `../tile-v2`).
+2. Set up Artifactory for npm: put your credentials in `~/.artifactory_creds`
+   (`chmod 0600`), and add this line to `~/.npmrc`:
+
+   ```
+   //foursquaredev.jfrog.io/foursquaredev/api/npm/npm/:_authToken=${ARTIFACTORY_PASSWORD}
+   ```
+
+3. Build tile-v2:
+
+   ```bash
+   export ARTIFACTORY_PASSWORD="$(grep '^artifactory_password=' ~/.artifactory_creds | cut -d= -f2-)"
+   cd ../tile-v2 && npm install && npm run build
+   ```
+
+4. Back here, run `npm install`.
+
+After pulling or changing tile-v2, rebuild it (`npm run build` there) and run
+`npm install` here again: `.npmrc` sets `install-links=true`, so npm installs a
+copy of tile's `dist/`, not a symlink, which keeps the app on a single React.
+
+### How it's wired
+
+- `components/ui/*.tsx` are thin `"use client"` re-exports from `@tile/ui`
+  (the bundle doesn't declare `"use client"`, which Next.js needs). App code keeps
+  importing from `@/components/ui/...`. `sheet.tsx` is still local; tile has no Sheet.
+- `tailwind.config.ts` scans `node_modules/@tile/ui/dist` for class names and uses
+  `tailwind.tile-preset.ts`, a copy of tile's preset (tile's build doesn't output
+  the `@tile/ui/tailwind-preset` it declares).
+- `app/globals.css` holds tile's design tokens plus the app's chart colors. Tile's
+  `styles.css` is not imported, because it is a full compiled Tailwind build and
+  would duplicate the app's own.
+- `next.config.ts` aliases `@monaco-editor/react`, `monaco-editor` and
+  `apache-arrow` to empty modules. Tile imports them at the top of its bundle
+  but only SqlEditor and DataTable use them.
+- `package.json` overrides `react-resizable-panels` to 4.12.2 (tile's locked
+  version). Newer 4.x releases use `React.Activity`, which React 18 lacks, and
+  break the production build.
+
+Tile dialogs are sectioned: put content between `DialogHeader` and
+`DialogFooter` inside `DialogBody`, which provides the padding.
+
+## Reviewing Loading, Empty and Error States
+
+Data comes from `lib/mock-api.ts`, which adds network-like latency. Add
+`?simulate=` to any page URL to force a state:
+
+| Parameter | What you'll see |
+| --- | --- |
+| `slow` | 3-second loads: skeletons on the chains list and chain page, progress on actions |
+| `load-error` | Load failure with the cause and a **Try again** button |
+| `empty` | "No chains yet" on the list; "No locations from …" for every source |
+| `no-sources` | "No data sources yet" on the chain page |
+| `action-error` | Every action fails: an error toast with **Retry**, nothing changed, selection kept |
+
+Combine with commas, e.g. `/chains/chick-fil-a-chain?simulate=slow,action-error`.
+Other states need no flag: an unknown chain ID (`/chains/does-not-exist`) shows
+"Chain not found", a search with no results shows **Clear search**, and column
+filters that hide every row show **Clear filters**.
+
 ## Application Structure
 
 ### Pages
