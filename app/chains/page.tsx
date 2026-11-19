@@ -266,9 +266,9 @@ export default function ChainsListPage() {
                           if (e.key === "Enter") router.push(`/chains/${chain.id}`);
                         }}
                       >
-                        <TableCell className="font-medium">
+                        <TableCell>
                           <div>
-                            <div className="font-semibold">{chain.n}</div>
+                            <div className="font-medium">{chain.n}</div>
                             <div className="text-xs text-muted-foreground line-clamp-1">
                               {chain.d}
                             </div>
